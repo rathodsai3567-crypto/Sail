@@ -1,0 +1,63 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract ZIP
+        run: unzip -o studymate-10.zip -d app
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm install
+
+      - name: Build app
+        working-directory: app
+        run: npm run build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+      - name: Install Capacitor
+        working-directory: app
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Initialize Capacitor
+        working-directory: app
+        run: npx cap init "StudyMate 10" "com.studymate10.app" --web-dir=dist
+
+      - name: Add Android
+        working-directory: app
+        run: npx cap add android
+
+      - name: Copy app
+        working-directory: app
+        run: npx cap copy android
+
+      - name: Build APK
+        working-directory: app/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudyMate-10-APK
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
